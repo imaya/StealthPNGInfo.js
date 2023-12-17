@@ -1,0 +1,27 @@
+{
+  "name": "stealth_pnginfo_parser",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "npx tsc && node ./dist/index.js -o dist",
+    "build": "npm run clean && npx ncc build src/index.ts && cp dist/index.js docs",
+    "clean": "rimraf dist",
+    "doc": "npx http-server docs -c-1",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.10.4",
+    "@vercel/ncc": "^0.38.1",
+    "http-server": "^14.1.1",
+    "rimraf": "^5.0.5",
+    "tsc": "^2.0.4",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "zlibjs": "^0.3.1"
+  }
+}

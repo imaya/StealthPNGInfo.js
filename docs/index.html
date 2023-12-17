@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Stealth PNG Info Viewer</title>
+    <link rel="stylesheet" href="https://unpkg.com/mvp.css"> 
+    <script src="https://unpkg.com/@alenaksu/json-viewer@2.0.0/dist/json-viewer.bundle.js"></script>
+    <script type="module">
+        import { StealthPngInfoParser } from "./index.js"
+
+        window.onload = (function(){
+            setDragAndDropEvent()
+        })()
+
+        function setDragAndDropEvent() {
+            var droparea = document;
+
+            droparea.addEventListener('drop', function(e) {
+                var file = e.dataTransfer.files[0];
+                var reader = new FileReader();
+                var i;
+
+                reader.onload = function () {
+                    var data = new Uint8Array(reader.result),
+                        png,
+                        identify,
+                        result = document.getElementById('raw'),
+                        option = {}
+                    const errorContainer = document.getElementById('error')
+                    const resultContainer = document.getElementById('result')
+
+                    // filename
+                    if (file.fileName) { option['Filename'] = file.filename; } // Chrome
+                    if (file.name)     { option['Filename'] = file.name;     } // Firefox
+
+                    // empty
+                    while (result.hasChildNodes()) { result.removeChild(result.firstChild);  }
+
+                    // parse
+                    const parser = new StealthPngInfoParser(data)
+                    const parsedData = parser.parse()
+
+                    if (!parsedData) {
+                        errorContainer.textContent = "PNGInfoが見つかりませんでした"
+                        errorContainer.style.display = "block"
+                        resultContainer.style.display = "none"
+                        return
+                    }
+
+                    // Image
+                    const imageURL = URL.createObjectURL(file)
+                    const img = document.createElement('img')
+                    img.addEventListener('load', function callback(ev) {
+                        URL.revokeObjectURL(imageURL)
+                        img.removeEventListener('load', callback)
+                    })
+                    img.src = imageURL
+                    const imgContainer = document.getElementById('img')
+                    while (imgContainer.firstChild) {
+                        imgContainer.removeChild(imgContainer.firstChild)
+                    }
+                    imgContainer.appendChild(img)
+
+                    // Raw
+                    result.textContent = parsedData
+
+                    // JSON
+                    const json = JSON.parse(parsedData)
+                    if (json["Comment"]) {
+                        json["Comment"] = JSON.parse(json["Comment"])
+                    }
+                    const jsonViewer = document.getElementById('json')
+                    jsonViewer.data = json
+                    jsonViewer.expandAll() 
+
+                    errorContainer.style.display = "none"
+                    resultContainer.style.display = "block"
+                }
+
+                reader.readAsArrayBuffer(file);
+
+                e.preventDefault();
+            }, false);
+
+            droparea.addEventListener('dragover', function(e) {
+                e.preventDefault();
+            }, false);
+        }
+    </script>
+  </head>
+  <body>
+    <header>
+        <h1>Stealth PNG Info Viewer</h1>
+        <p>このページに画像ファイルをドラッグアンドドロップするとそのファイルのピクセルに埋め込まれたPNGInfoを表示します。</p>
+    </header>
+    <main>
+        <dialog id="error" style="display: none"></dialog>
+        <div id="result" style="display: none">
+            <h2>Image</h2>
+            <div id="img"></div>
+            <h2>Raw</h2>
+            <div id="raw"></div>
+            <h2>JSON</h2>
+            <json-viewer id="json" style="padding: 0 1rem"></json-viewer>
+        </div>
+    </main>
+  </body>
+</html>
