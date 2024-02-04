@@ -33,6 +33,11 @@ import {default as zlib} from 'zlibjs/bin/inflate.min.js'
 type PngIdentifyBufferType = number[] | Uint8Array
 type PngIdentifyPixelsType = number[] | Uint8Array | Uint16Array
 type PngIdentifyInputType = PngIdentifyBufferType
+type PngIdentifyChunk = {
+  type: string,
+  position: number,
+  size: number,
+}
 
 class PngIdentify {
   input: PngIdentifyInputType
@@ -50,7 +55,7 @@ class PngIdentify {
   interlaceMethod: number
   //histgram: PngIdentifyBufferType
   filters: number[]
-  chunks: Object[]
+  chunks: PngIdentifyChunk[]
   pos: number
   palette: PngIdentifyBufferType[]
   filterCount: number[]
@@ -58,7 +63,7 @@ class PngIdentify {
 
   constructor(input: PngIdentifyInputType) {
     this.input = input;
-    this.chunks = [] as Object[]
+    this.chunks = [] as PngIdentifyChunk[]
     this.filters = []
 
     this.width = -1
@@ -112,12 +117,17 @@ class PngIdentify {
     return rowFilters;
   }
 
+  getChunkData(chunk: PngIdentifyChunk) {
+    const pos = chunk.position + 8
+    return subarray(this.input, pos, pos + chunk.size)
+  }
+
   /**
    * parse png chunks
    */
   parse() {
     const data = this.input
-    var chunk = this.chunks = [] as Object[]
+    var chunk = this.chunks = [] as PngIdentifyChunk[]
     var chunkSize: number
     var section: string // chunk type
     var pos: number

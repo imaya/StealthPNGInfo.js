@@ -28,6 +28,13 @@
                         option = {}
                     const errorContainer = document.getElementById('error')
                     const resultContainer = document.getElementById('result')
+                    const stealthContainer = document.getElementById('stealth')
+                    const textChunkContainer = document.getElementById('textchunk')
+
+                    errorContainer.style.display = "none"
+                    resultContainer.style.display = "block"
+                    stealthContainer.style.display = "none"
+                    textChunkContainer.style.display = "none"
 
                     // filename
                     if (file.fileName) { option['Filename'] = file.filename; } // Chrome
@@ -40,12 +47,9 @@
                     const parser = new StealthPngInfoParser(data)
                     const parsedData = parser.parse()
 
-                    if (!parsedData) {
-                        errorContainer.textContent = "PNGInfoが見つかりませんでした"
-                        errorContainer.style.display = "block"
-                        resultContainer.style.display = "none"
-                        return
-                    }
+
+                    const stealthPngInfoJsonViewer = document.getElementById('stealth-json')
+                    console.log("stealth:", parsedData.stealthData)
 
                     // Image
                     const imageURL = URL.createObjectURL(file)
@@ -61,20 +65,55 @@
                     }
                     imgContainer.appendChild(img)
 
-                    // Raw
-                    result.textContent = parsedData
+                    // Stealth PNG Info
+                    if (parsedData.stealthData) {
+                        // Raw
+                        result.textContent = parsedData.stealthData
 
-                    // JSON
-                    const json = JSON.parse(parsedData)
-                    if (json["Comment"]) {
-                        json["Comment"] = JSON.parse(json["Comment"])
+                        // JSON
+                        let json = {}
+                        try {
+                            json = JSON.parse(parsedData.stealthData)
+                        } catch(e) {
+                            console.error("JSON parse error:", e)
+                        }
+                        if (json["Comment"]) {
+                            json["Comment"] = JSON.parse(json["Comment"])
+                        }
+                        stealthPngInfoJsonViewer.data = json
+                        stealthContainer.style.display = "block"
+                    } else {
+                        stealthPngInfoJsonViewer.data = "PNGInfoが見つかりませんでした"
                     }
-                    const jsonViewer = document.getElementById('json')
-                    jsonViewer.data = json
-                    jsonViewer.expandAll() 
+                    stealthPngInfoJsonViewer.expandAll() 
 
-                    errorContainer.style.display = "none"
-                    resultContainer.style.display = "block"
+                    // Text Chunks
+                    const textChunks = []
+                    for (const chunk of parsedData.pngInfo.chunks) {
+                        switch (chunk.type) {
+                            case "tEXt":
+                                const data = parsedData.pngInfo.getChunkData(chunk)
+                                const text = []
+                                for (let i = 0, il = data.length; i < il; ++i) {
+                                    text.push(String.fromCharCode(data[i]))
+                                }
+                                const [key, value] = text.join('').split("\x00", 2)
+                                textChunks.push({key: key, value: value})
+                        }
+                    }
+                    const pngInfoJsonViewer = document.getElementById('pnginfo-json')
+                    pngInfoJsonViewer.data = textChunks
+                    pngInfoJsonViewer.expandAll()
+
+                    if (textChunks.length > 0) {
+                        textChunkContainer.style.display = "block"
+                    }
+
+                    if (!parsedData.stealthData && textChunks.length === 0) {
+                        errorContainer.textContent = "PNGInfoが見つかりませんでした"
+                        errorContainer.style.display = "block"
+                        resultContainer.style.display = "none"
+                    }
                 }
 
                 reader.readAsArrayBuffer(file);
@@ -91,17 +130,23 @@
   <body>
     <header>
         <h1>Stealth PNG Info Viewer</h1>
-        <p>このページに画像ファイルをドラッグアンドドロップするとそのファイルのピクセルに埋め込まれたPNGInfoを表示します。</p>
+        <p>このページに画像ファイルをドラッグアンドドロップするとそのファイルのPNGInfoを表示します。(ピクセル埋込対応)</p>
     </header>
     <main>
         <dialog id="error" style="display: none"></dialog>
         <div id="result" style="display: none">
             <h2>Image</h2>
             <div id="img"></div>
-            <h2>Raw</h2>
-            <div id="raw"></div>
-            <h2>JSON</h2>
-            <json-viewer id="json" style="padding: 0 1rem"></json-viewer>
+            <div id="stealth">
+                <h2>Stealth PNG Info Raw</h2>
+                <div id="raw"></div>
+                <h2>Stealth PNG Info JSON</h2>
+                <json-viewer id="stealth-json" style="padding: 0 1rem"></json-viewer>
+            </div>
+            <div id="textchunk">
+                <h2>PNG Info JSON</h2>
+                <json-viewer id="pnginfo-json" style="padding: 0 1rem"></json-viewer>
+            </div>
         </div>
     </main>
   </body>

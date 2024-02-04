@@ -367,6 +367,10 @@ class PngIdentify {
         this.filters = rowFilters;
         return rowFilters;
     }
+    getChunkData(chunk) {
+        const pos = chunk.position + 8;
+        return subarray(this.input, pos, pos + chunk.size);
+    }
     /**
      * parse png chunks
      */
@@ -819,13 +823,20 @@ class StealthPngInfoParser {
         if (pi.bitDepth !== 8 && pi.bitDepth !== 16) {
             throw new Error('unsupported bit depth:' + pi.bitDepth);
         }
+        let stealthData = null;
         switch (pi.colourType) {
             case PngIdentify.ColourType.GRAYSCALE_WITH_ALPHA:
             case PngIdentify.ColourType.TRUECOLOR_WITH_ALPHA:
-                return readInfoFromImageStealth(pi.pixels, pi.width, pi.height, true);
+                stealthData = readInfoFromImageStealth(pi.pixels, pi.width, pi.height, true);
+                break;
             default:
-                return readInfoFromImageStealth(pi.pixels, pi.width, pi.height, false);
+                stealthData = readInfoFromImageStealth(pi.pixels, pi.width, pi.height, false);
+                break;
         }
+        return {
+            pngInfo: pi,
+            stealthData
+        };
     }
 }
 

@@ -19,12 +19,20 @@ class StealthPngInfoParser {
             throw new Error('unsupported bit depth:' + pi.bitDepth)
         }
 
+        let stealthData = null
         switch(pi.colourType){
             case PngIdentify.ColourType.GRAYSCALE_WITH_ALPHA:
             case PngIdentify.ColourType.TRUECOLOR_WITH_ALPHA:
-                return readInfoFromImageStealth(pi.pixels as any, pi.width, pi.height, true)
+                stealthData = readInfoFromImageStealth(pi.pixels as any, pi.width, pi.height, true)
+                break
             default:
-                return readInfoFromImageStealth(pi.pixels as any, pi.width, pi.height, false)
+                stealthData = readInfoFromImageStealth(pi.pixels as any, pi.width, pi.height, false)
+                break
+        }
+
+        return {
+            pngInfo: pi,
+            stealthData
         }
     }
 }
